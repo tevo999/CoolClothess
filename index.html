@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoolClothess • Roupeiro Virtual & Provador Interativo</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fdf4ff',
+                            100: '#fae8ff',
+                            200: '#f5d0fe',
+                            300: '#f0abfc',
+                            400: '#e879f9',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                            700: '#a21caf',
+                            800: '#86198f',
+                            900: '#701a75',
+                        },
+                        cool: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Fabric.js para manipulação interativa no Provador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Gradient Backgrounds */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .canvas-container-wrapper {
+            background-image: radial-gradient(#334155 1.5px, transparent 1.5px);
+            background-size: 16px 16px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- HEADER / NAVEGAÇÃO -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Logo CoolClothess -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-500 via-purple-500 to-cool-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+                    <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-brand-300 bg-clip-text text-transparent leading-none">
+                        CoolClothess
+                    </h1>
+                    <p class="text-[11px] font-medium text-brand-400">Roupeiro Virtual & Provador Interativo</p>
+                </div>
+            </div>
+
+            <!-- Navegação principal e Ações -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="switchMainTab('wardrobe')" id="nav-btn-wardrobe" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-brand-600/20 text-brand-300 border border-brand-500/30 hover:bg-brand-600/30 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-shirt"></i> <span class="hidden sm:inline">Meu Roupeiro</span>
+                </button>
+                <button onclick="switchMainTab('lookbook')" id="nav-btn-lookbook" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i> <span class="hidden sm:inline">Lookbook</span>
+                    <span id="lookbook-count-badge" class="ml-1 px-1.5 py-0.2 bg-brand-500 text-white rounded-full text-[10px]">0</span>
+                </button>
+                <button onclick="saveCurrentLook()" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-brand-500 to-purple-600 hover:from-brand-600 hover:to-purple-700 text-white shadow-lg shadow-brand-500/20 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-camera"></i> <span class="hidden md:inline">Salvar Look</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTAINER PRINCIPAL -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 lg:p-8">
+
+        <!-- ABA 1: ROUPEIRO VIRTUAL & PROVADOR INTERATIVO -->
+        <div id="tab-content-wardrobe" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- PAINEL DA ESQUERDA: CATÁLOGO DE ROUPAS -->
+            <section class="lg:col-span-7 space-y-5">
+                
+                <!-- Card de Ações do Roupeiro -->
+                <div class="glass-panel p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-brand-400"></i> Coleção do Roupeiro
+                        </h2>
+                        <p class="text-xs text-slate-400">Adicione suas roupas, filtre por categorias e monte estilos únicos.</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="openAddGarmentModal()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md shadow-brand-600/30 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Nova Peça
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Barra de Categorias -->
+                <div class="glass-panel p-4 rounded-2xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Categorias</span>
+                        <button onclick="openCategoryModal()" class="text-xs font-semibold text-brand-400 hover:text-brand-300 transition-colors flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders"></i> Gerenciar Categorias
+                        </button>
+                    </div>
+
+                    <!-- Abas de Filtro de Categoria -->
+                    <div id="category-tabs-container" class="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
+                        <!-- Gerado dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <!-- Busca e Grid de Roupas -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between px-1">
+                        <span id="items-count-badge" class="text-xs font-medium text-slate-400">Exibindo 0 peças</span>
+                        <div class="relative w-48">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+                            <input type="text" id="search-input" oninput="filterGarments()" placeholder="Buscar roupa..." class="w-full text-xs bg-slate-800/80 border border-slate-700 text-white pl-8 pr-3 py-1.5 rounded-xl focus:outline-none focus:border-brand-500 transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Grid de Roupas -->
+                    <div id="wardrobe-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+                        <!-- Cards renderizados via JS -->
+                    </div>
+
+                    <!-- Estado Vazio -->
+                    <div id="empty-state" class="hidden glass-panel rounded-2xl border-dashed border-slate-700 p-8 text-center space-y-3">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-800 text-brand-400 flex items-center justify-center mx-auto text-xl">
+                            <i class="fa-solid fa-shirt"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-white text-sm">Nenhuma peça encontrada</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Adicione peças ou selecione outra categoria.</p>
+                        </div>
+                        <button onclick="openAddGarmentModal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-300 text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-plus mr-1"></i> Adicionar Agora
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- PAINEL DA DIREITA: PROVADOR INTERATIVO COM AVATAR -->
+            <section class="lg:col-span-5 space-y-4">
+
+                <!-- Card Principal do Provador -->
+                <div class="glass-panel p-4 sm:p-5 rounded-2xl space-y-4">
+
+                    <!-- Cabeçalho do Provador & Opções do Avatar -->
+                    <div class="space-y-3 border-b border-slate-800 pb-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="font-bold text-white text-base flex items-center gap-2">
+                                    <i class="fa-solid fa-user-check text-brand-400"></i> Provador Interativo
+                                </h2>
+                                <p class="text-xs text-slate-400">Ajuste e experimente roupas em tempo real</p>
+                            </div>
+
+                            <button onclick="clearFittingRoom()" title="Limpar todas as peças do avatar" class="px-2.5 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-700 transition-all">
+                                <i class="fa-solid fa-rotate-left mr-1"></i> Limpar
+                            </button>
+                        </div>
+
+                        <!-- Seleção de Modelo/Avatar -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-800/60 p-2 rounded-xl border border-slate-700/50">
+                            <div class="flex items-center gap-1">
+                                <button onclick="setAvatarModel('female')" id="btn-avatar-female" class="px-2.5 py-1 rounded-lg text-xs font-medium text-white bg-brand-600 transition-all">
+                                    Feminino
+                                </button>
+                                <button onclick="setAvatarModel('male')" id="btn-avatar-male" class="px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all">
+                                    Masculino
+                                </button>
+                            </div>
+
+                            <!-- Cor de Pele -->
+                            <div class="flex items-center gap-1">
+                                <span class="text-[10px] uppercase font-bold text-slate-400 mr-1">Pele:</span>
+                                <button onclick="setSkinTone('#fce2d6')" class="w-5 h-5 rounded-full border border-white/20 bg-[#fce2d6]" title="Clara"></button>
+                                <button onclick="setSkinTone('#e8b1a0')" class="w-5 h-5 rounded-full border border-white/20 bg-[#e8b1a0]" title="Morena Clara"></button>
+                                <button onclick="setSkinTone('#c68642')" class="w-5 h-5 rounded-full border border-white/20 bg-[#c68642]" title="Morena"></button>
+                                <button onclick="setSkinTone('#8d5524')" class="w-5 h-5 rounded-full border border-white/20 bg-[#8d5524]" title="Negra"></button>
+                            </div>
+
+                            <!-- Upload Foto Própria -->
+                            <label for="custom-avatar-input" class="px-2 py-1 rounded-lg text-xs font-medium text-cool-500 hover:text-cool-400 cursor-pointer flex items-center gap-1">
+                                <i class="fa-solid fa-upload"></i> Sua Foto
+                            </label>
+                            <input type="file" id="custom-avatar-input" accept="image/*" class="hidden" onchange="handleCustomAvatarUpload(event)">
+                        </div>
+                    </div>
+
+                    <!-- Canvas do Provador Fabric.js -->
+                    <div class="relative flex justify-center items-center">
+                        <div class="canvas-container-wrapper rounded-2xl border border-slate-700 overflow-hidden relative shadow-2xl">
+                            <canvas id="dressing-room-canvas" width="340" height="520"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Painel de Controles Precisos da Peça Selecionada -->
+                    <div id="piece-controls-panel" class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700 space-y-3 opacity-40 pointer-events-none transition-all">
+                        <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                            <span class="text-xs font-bold text-brand-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-sliders"></i> Ajustes da Peça Selecionada
+                            </span>
+                            <span id="selected-piece-name" class="text-xs text-slate-400 italic truncate max-w-[130px]">Nenhuma selecionada</span>
+                        </div>
+
+                        <!-- Controle de Escala / Tamanho -->
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-300">
+                                <span>Tamanho (Escala)</span>
+                                <span id="scale-value" class="font-bold text-brand-400">100%</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="adjustScale(-0.05)" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold">-</button>
+                                <input type="range" id="scale-slider" min="20" max="250" value="100" oninput="onScaleSliderChange(this.value)" class="flex-1 accent-brand-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer">
+                                <button onclick="adjustScale(0.05)" class="w-7 h-7 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Controle de Rotação e Transparência -->
+                        <div class="grid grid-cols-2 gap-3 pt-1">
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[11px] text-slate-300">
+                                    <span>Rotação</span>
+                                    <span id="rotate-value" class="font-semibold text-brand-400">0°</span>
+                                </div>
+                                <input type="range" id="rotate-slider" min="0" max="360" value="0" oninput="onRotateSliderChange(this.value)" class="w-full accent-brand-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer">
+                            </div>
+
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[11px] text-slate-300">
+                                    <span>Opacidade</span>
+                                    <span id="opacity-value" class="font-semibold text-brand-400">100%</span>
+                                </div>
+                                <input type="range" id="opacity-slider" min="10" max="100" value="100" oninput="onOpacitySliderChange(this.value)" class="w-full accent-brand-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer">
+                            </div>
+                        </div>
+
+                        <!-- Botões de Camada (Z-Index) e Ações -->
+                        <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-700/60">
+                            <button onclick="bringForward()" title="Avançar camada" class="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs flex flex-col items-center gap-1 font-medium">
+                                <i class="fa-solid fa-angle-up"></i> Frente
+                            </button>
+                            <button onclick="sendBackwards()" title="Recuar camada" class="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs flex flex-col items-center gap-1 font-medium">
+                                <i class="fa-solid fa-angle-down"></i> Trás
+                            </button>
+                            <button onclick="flipItem()" title="Espelhar Horizontalmente" class="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs flex flex-col items-center gap-1 font-medium">
+                                <i class="fa-solid fa-arrows-left-right"></i> Espelhar
+                            </button>
+                            <button onclick="removeSelectedGarment()" title="Remover do Provador" class="p-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg text-xs flex flex-col items-center gap-1 font-medium">
+                                <i class="fa-solid fa-trash-can"></i> Remover
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ABA 2: GALERIA DO LOOKBOOK -->
+        <div id="tab-content-lookbook" class="hidden space-y-5">
+            <div class="glass-panel p-5 rounded-2xl flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-book-bookmark text-brand-400"></i> Seu Lookbook Salvo
+                    </h2>
+                    <p class="text-xs text-slate-400">Confira e baixe os looks que você criou no provador.</p>
+                </div>
+                <button onclick="switchMainTab('wardrobe')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">
+                    <i class="fa-solid fa-plus mr-1"></i> Criar Novo Look
+                </button>
+            </div>
+
+            <!-- Grid do Lookbook -->
+            <div id="lookbook-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Renderizado via JS -->
+            </div>
+
+            <!-- Estado Vazio do Lookbook -->
+            <div id="lookbook-empty-state" class="hidden glass-panel rounded-2xl border-dashed border-slate-700 p-12 text-center space-y-3">
+                <div class="w-16 h-16 rounded-full bg-slate-800 text-brand-400 flex items-center justify-center mx-auto text-2xl">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+                <h3 class="font-bold text-white text-base">Nenhum look salvo ainda</h3>
+                <p class="text-xs text-slate-400 max-w-sm mx-auto">Vá até o provador, monte uma combinação estilosa no avatar e clique em "Salvar Look".</p>
+                <button onclick="switchMainTab('wardrobe')" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-xl shadow-lg">
+                    Ir para o Provador
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL: CADASTRAR NOVA ROUPA -->
+    <div id="modal-add-garment" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <i class="fa-solid fa-shirt text-brand-400"></i> Cadastrar Nova Roupa
+                </h3>
+                <button onclick="closeAddGarmentModal()" class="text-slate-400 hover:text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="form-add-garment" onsubmit="handleSaveGarment(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Nome da Peça *</label>
+                    <input type="text" id="garment-name" required placeholder="Ex: Top Cropped Neon, Jeans Wide Leg..." class="w-full text-sm bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Categoria *</label>
+                    <select id="garment-category" required class="w-full text-sm bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand-500">
+                        <!-- Categorias dinâmicas -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Origem da Imagem *</label>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <button type="button" id="btn-src-upload" onclick="setImgSourceMode('upload')" class="py-2 rounded-xl text-xs font-medium border border-brand-500 bg-brand-500/20 text-brand-300">
+                            <i class="fa-solid fa-upload mr-1"></i> Upload do Dispositivo
+                        </button>
+                        <button type="button" id="btn-src-url" onclick="setImgSourceMode('url')" class="py-2 rounded-xl text-xs font-medium border border-slate-700 bg-slate-800 text-slate-400">
+                            <i class="fa-solid fa-link mr-1"></i> Link da URL
+                        </button>
+                    </div>
+
+                    <!-- Input Upload -->
+                    <div id="container-input-upload" class="space-y-2">
+                        <input type="file" id="garment-file-input" accept="image/*" onchange="previewFileImage(event)" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500">
+                        <p class="text-[11px] text-slate-400">Dica: Prefira imagens PNG com fundo transparente para melhor acabamento no provador.</p>
+                    </div>
+
+                    <!-- Input URL -->
+                    <div id="container-input-url" class="hidden space-y-2">
+                        <input type="url" id="garment-url-input" placeholder="https://exemplo.com/imagem.png" oninput="previewUrlImage(this.value)" class="w-full text-sm bg-slate-800 border border-slate-700 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-brand-500">
+                    </div>
+
+                    <!-- Preview -->
+                    <div id="garment-img-preview-box" class="hidden mt-3 p-3 bg-slate-800/80 rounded-xl border border-slate-700 text-center">
+                        <p class="text-[10px] text-slate-400 uppercase font-bold mb-1">Pré-visualização</p>
+                        <img id="garment-img-preview" src="" class="max-h-36 mx-auto rounded object-contain">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-2 border-t border-slate-800">
+                    <button type="button" onclick="closeAddGarmentModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30">Salvar no Roupeiro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: GERENCIAR CATEGORIAS -->
+    <div id="modal-manage-categories" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-brand-400"></i> Gerenciador de Categorias
+                </h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Formulário Criar Categoria -->
+            <form onsubmit="handleCreateCategory(event)" class="p-3 bg-slate-800/60 rounded-xl border border-slate-700 space-y-2">
+                <span class="text-xs font-bold text-slate-300 block">Criar Nova Categoria</span>
+                <div class="flex gap-2">
+                    <input type="text" id="new-cat-name" required placeholder="Ex: Vestidos, Acessórios..." class="flex-1 text-xs bg-slate-900 border border-slate-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:border-brand-500">
+                    <button type="submit" class="px-3.5 py-2 bg-brand-600 text-white text-xs font-bold rounded-lg hover:bg-brand-500">Adicionar</button>
+                </div>
+            </form>
+
+            <!-- Lista de Categorias -->
+            <div class="space-y-2">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Categorias Atuais</span>
+                <div id="categories-management-list" class="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                    <!-- Renderizado dinamicamente -->
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end border-t border-slate-800">
+                <button onclick="closeCategoryModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold">Concluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CUSTOMIZADO DE CONFIRMAÇÃO DE EXCLUSÃO -->
+    <div id="modal-confirm-delete" class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 rounded-2xl max-w-xs w-full p-5 shadow-2xl border border-slate-800 space-y-4 text-center">
+            <div class="w-12 h-12 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-lg border border-rose-500/30">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <div>
+                <h4 class="font-bold text-white text-sm" id="confirm-title">Excluir item?</h4>
+                <p class="text-xs text-slate-400 mt-1" id="confirm-desc">Esta ação não poderá ser desfeita.</p>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700">Cancelar</button>
+                <button id="btn-confirm-delete-action" class="flex-1 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-500 shadow-md">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST DE NOTIFICAÇÃO -->
+    <div id="toast-notification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-800 text-white px-4 py-3 rounded-2xl border border-slate-700 shadow-2xl flex items-center gap-3 text-xs">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toast-message">Operação realizada com sucesso!</span>
+    </div>
+
+    <!-- LÓGICA JAVASCRIPT COOLCLOTHESS -->
+    <script>
+        /* ==========================================================================
+           1. RECURSOS GRÁFICOS (SVGs VETORIAIS) & ESTADO INICIAL
+           ========================================================================== */
+        
+        // Gerador Dinâmico do Avatar Vetorial
+        function generateAvatarSVG(gender = 'female', skinColor = '#fce2d6') {
+            const isFemale = gender === 'female';
+            const hairColor = isFemale ? '#2a1711' : '#1e1b18';
+            
+            return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 600" width="300" height="600">
+            <defs>
+                <linearGradient id="skinGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="${skinColor}"/>
+                    <stop offset="100%" stop-color="${adjustColorBrightness(skinColor, -25)}"/>
+                </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="%230f172a"/>
+            <g transform="translate(0, 20)">
+                <!-- Sombra chão -->
+                <ellipse cx="150" cy="550" rx="55" ry="10" fill="%23020617" opacity="0.6"/>
+                
+                <!-- Cabeça e Cabelo -->
+                <circle cx="150" cy="75" r="28" fill="url(%23skinGrad)"/>
+                ${isFemale 
+                    ? `<path d="M 125 65 Q 150 25 175 65 Q 188 95 175 110 Q 150 90 125 110 Z" fill="${hairColor}"/>`
+                    : `<path d="M 128 65 Q 150 40 172 65 Q 175 75 125 75 Z" fill="${hairColor}"/>`
+                }
+                
+                <!-- Pescoço -->
+                <path d="M 143 100 L 157 100 L 159 120 L 141 120 Z" fill="url(%23skinGrad)"/>
+                
+                <!-- Tronco -->
+                ${isFemale 
+                    ? `<path d="M 125 120 L 175 120 L 182 195 L 118 195 Z" fill="url(%23skinGrad)"/>
+                       <path d="M 120 195 L 180 195 L 172 275 L 128 275 Z" fill="url(%23skinGrad)"/>`
+                    : `<path d="M 118 120 L 182 120 L 178 210 L 122 210 Z" fill="url(%23skinGrad)"/>
+                       <path d="M 122 210 L 178 210 L 172 275 L 128 275 Z" fill="url(%23skinGrad)"/>`
+                }
+                
+                <!-- Braços -->
+                <path d="M 122 122 L 98 225 L 110 230 L 128 145 Z" fill="url(%23skinGrad)"/>
+                <path d="M 178 122 L 202 225 L 190 230 L 172 145 Z" fill="url(%23skinGrad)"/>
+                
+                <!-- Pernas -->
+                <path d="M 128 275 L 148 275 L 145 480 L 125 480 Z" fill="url(%23skinGrad)"/>
+                <path d="M 152 275 L 172 275 L 175 480 L 155 480 Z" fill="url(%23skinGrad)"/>
+                
+                <!-- Pés -->
+                <ellipse cx="134" cy="488" rx="13" ry="7" fill="url(%23skinGrad)"/>
+                <ellipse cx="166" cy="488" rx="13" ry="7" fill="url(%23skinGrad)"/>
+
+                <!-- Roupas íntimas guia -->
+                <path d="M 128 180 L 172 180 L 168 220 L 132 220 Z" fill="%23334155" opacity="0.4"/>
+            </g>
+            </svg>`;
+        }
+
+        // Função auxiliar para escurecer tom de sombra da pele
+        function adjustColorBrightness(hex, percent) {
+            let num = parseInt(hex.replace('#',''), 16),
+            amt = Math.round(2.55 * percent),
+            R = (num >> 16) + amt,
+            G = (num >> 8 & 0x00FF) + amt,
+            B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+        }
+
+        // Peças de Amostra Iniciais
+        const SAMPLE_CROPPED = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="200" height="160"><path d="M 40 25 L 70 10 Q 100 30 130 10 L 160 25 L 175 65 L 145 80 L 145 130 L 55 130 L 55 80 L 25 65 Z" fill="%23d946ef" stroke="%23a21caf" stroke-width="4"/><path d="M 70 10 Q 100 35 130 10" fill="none" stroke="%23ffffff" stroke-width="3"/></svg>`;
+        const SAMPLE_JEANS = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 260" width="160" height="260"><path d="M 20 10 L 140 10 L 146 95 L 135 250 L 92 250 L 80 110 L 68 250 L 25 250 L 14 95 Z" fill="%230284c7" stroke="%230369a1" stroke-width="4"/><path d="M 20 10 L 140 10 L 135 35 L 25 35 Z" fill="%23075985"/><line x1="80" y1="35" x2="80" y2="110" stroke="%23f59e0b" stroke-dasharray="4" stroke-width="2"/></svg>`;
+        const SAMPLE_JACKET = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200" width="220" height="200"><path d="M 30 20 L 70 10 Q 110 25 150 10 L 190 20 L 210 115 L 170 125 L 170 185 L 50 185 L 50 125 L 10 115 Z" fill="%230f172a" stroke="%23d946ef" stroke-width="4"/><path d="M 70 10 L 95 80 L 50 185" fill="none" stroke="%23d946ef" stroke-width="3"/><path d="M 150 10 L 125 80 L 170 185" fill="none" stroke="%23d946ef" stroke-width="3"/></svg>`;
+        const SAMPLE_SHOES = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 90" width="200" height="90"><path d="M 10 50 Q 30 20 70 20 L 85 50 L 85 70 L 10 70 Z" fill="%23ffffff" stroke="%230f172a" stroke-width="3"/><path d="M 115 50 L 115 20 Q 150 20 190 50 L 190 70 L 115 70 Z" fill="%23ffffff" stroke="%230f172a" stroke-width="3"/></svg>`;
+
+        // Categorias Iniciais Padrão
+        const DEFAULT_CATEGORIES = [
+            { id: 'cat_all', name: 'Todas', icon: 'fa-border-all' },
+            { id: 'cat_shirts', name: 'Camisetas & Tops', icon: 'fa-shirt' },
+            { id: 'cat_pants', name: 'Calças & Saias', icon: 'fa-person-dress' },
+            { id: 'cat_jackets', name: 'Casacos & Jaquetas', icon: 'fa-vest' },
+            { id: 'cat_shoes', name: 'Calçados', icon: 'fa-shoe-prints' },
+            { id: 'cat_acc', name: 'Acessórios', icon: 'fa-glasses' }
+        ];
+
+        // Roupas Iniciais
+        const INITIAL_GARMENTS = [
+            { id: 'item_1', name: 'Cropped Magenta Neon', categoryId: 'cat_shirts', imageUrl: SAMPLE_CROPPED, dateAdded: Date.now() },
+            { id: 'item_2', name: 'Calça Jeans Wide Leg', categoryId: 'cat_pants', imageUrl: SAMPLE_JEANS, dateAdded: Date.now() - 1000 },
+            { id: 'item_3', name: 'Jaqueta Biker Cyber', categoryId: 'cat_jackets', imageUrl: SAMPLE_JACKET, dateAdded: Date.now() - 2000 },
+            { id: 'item_4', name: 'Sneakers Street White', categoryId: 'cat_shoes', imageUrl: SAMPLE_SHOES, dateAdded: Date.now() - 3000 }
+        ];
+
+        // Estado do App
+        let appCategories = JSON.parse(localStorage.getItem('coolclothes_categories')) || DEFAULT_CATEGORIES;
+        let appGarments = JSON.parse(localStorage.getItem('coolclothes_garments')) || INITIAL_GARMENTS;
+        let appSavedLooks = JSON.parse(localStorage.getItem('coolclothes_looks')) || [];
+        let currentCategoryFilter = 'cat_all';
+        
+        let fabricCanvas = null;
+        let avatarGender = localStorage.getItem('coolclothes_avatar_gender') || 'female';
+        let avatarSkinTone = localStorage.getItem('coolclothes_avatar_skin') || '#fce2d6';
+        let customAvatarData = localStorage.getItem('coolclothes_custom_avatar') || null;
+
+        let pendingDeleteAction = null;
+        let tempImagePreview = null;
+        let currentSourceMode = 'upload';
+
+        /* ==========================================================================
+           2. INICIALIZAÇÃO
+           ========================================================================== */
+        
+        window.onload = function() {
+            initFabricCanvas();
+            renderCategoryTabs();
+            renderWardrobe();
+            populateCategoryDropdowns();
+            updateLookbookBadge();
+        };
+
+        function initFabricCanvas() {
+            fabricCanvas = new fabric.Canvas('dressing-room-canvas', {
+                width: 340,
+                height: 520,
+                backgroundColor: '#0f172a',
+                selection: true
+            });
+
+            // Estilização dos controles/handles Fabric.js
+            fabric.Object.prototype.set({
+                transparentCorners: false,
+                cornerColor: '#d946ef',
+                cornerStrokeColor: '#ffffff',
+                cornerStyle: 'circle',
+                cornerSize: 10,
+                borderDashArray: [4, 4],
+                borderColor: '#d946ef'
+            });
+
+            // Sincronizar painel de controle nos eventos
+            fabricCanvas.on('selection:created', updateControlPanel);
+            fabricCanvas.on('selection:updated', updateControlPanel);
+            fabricCanvas.on('selection:cleared', updateControlPanel);
+            fabricCanvas.on('object:scaling', syncControlsFromObject);
+            fabricCanvas.on('object:rotating', syncControlsFromObject);
+
+            loadAvatarBackground();
+        }
+
+        /* ==========================================================================
+           3. GESTÃO DO AVATAR NO PROVADOR
+           ========================================================================== */
+        
+        function loadAvatarBackground() {
+            const avatarUrl = customAvatarData ? customAvatarData : generateAvatarSVG(avatarGender, avatarSkinTone);
+
+            fabric.Image.fromURL(avatarUrl, function(img) {
+                fabricCanvas.setBackgroundImage(img, fabricCanvas.renderAll.bind(fabricCanvas), {
+                    scaleX: fabricCanvas.width / img.width,
+                    scaleY: fabricCanvas.height / img.height,
+                    originX: 'left',
+                    originY: 'top'
+                });
+            });
+
+            // Atualiza estado visual dos botões
+            const btnFemale = document.getElementById('btn-avatar-female');
+            const btnMale = document.getElementById('btn-avatar-male');
+
+            if (!customAvatarData && avatarGender === 'female') {
+                btnFemale.className = "px-2.5 py-1 rounded-lg text-xs font-medium text-white bg-brand-600 transition-all";
+                btnMale.className = "px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all";
+            } else if (!customAvatarData && avatarGender === 'male') {
+                btnMale.className = "px-2.5 py-1 rounded-lg text-xs font-medium text-white bg-brand-600 transition-all";
+                btnFemale.className = "px-2.5 py-1 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all";
+            }
+        }
+
+        function setAvatarModel(gender) {
+            customAvatarData = null;
+            localStorage.removeItem('coolclothes_custom_avatar');
+            avatarGender = gender;
+            localStorage.setItem('coolclothes_avatar_gender', gender);
+            loadAvatarBackground();
+            showToast(`Modelo ${gender === 'female' ? 'Feminino' : 'Masculino'} carregado`);
+        }
+
+        function setSkinTone(hex) {
+            customAvatarData = null;
+            localStorage.removeItem('coolclothes_custom_avatar');
+            avatarSkinTone = hex;
+            localStorage.setItem('coolclothes_avatar_skin', hex);
+            loadAvatarBackground();
+            showToast('Tom de pele ajustado!');
+        }
+
+        function handleCustomAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                customAvatarData = e.target.result;
+                localStorage.setItem('coolclothes_custom_avatar', customAvatarData);
+                loadAvatarBackground();
+                showToast('Sua foto foi definida como avatar!');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /* ==========================================================================
+           4. ADICIONAR E MANIPULAR ROUPAS NO CANVA
+           ========================================================================== */
+        
+        function tryGarmentOnAvatar(garmentId) {
+            const garment = appGarments.find(g => g.id === garmentId);
+            if (!garment) return;
+
+            fabric.Image.fromURL(garment.imageUrl, function(img) {
+                const targetWidth = 140;
+                const scale = targetWidth / img.width;
+
+                img.set({
+                    left: fabricCanvas.width / 2,
+                    top: fabricCanvas.height / 2.6,
+                    originX: 'center',
+                    originY: 'center',
+                    scaleX: scale,
+                    scaleY: scale,
+                    garmentDataId: garment.id,
+                    garmentName: garment.name
+                });
+
+                fabricCanvas.add(img);
+                fabricCanvas.setActiveObject(img);
+                fabricCanvas.renderAll();
+                updateControlPanel();
+
+                showToast(`"${garment.name}" adicionada ao provador!`);
+            }, { crossOrigin: 'anonymous' });
+        }
+
+        function updateControlPanel() {
+            const activeObj = fabricCanvas.getActiveObject();
+            const panel = document.getElementById('piece-controls-panel');
+            const nameSpan = document.getElementById('selected-piece-name');
+
+            if (activeObj) {
+                panel.classList.remove('opacity-40', 'pointer-events-none');
+                nameSpan.textContent = activeObj.garmentName || 'Peça da Roupa';
+
+                syncControlsFromObject();
+            } else {
+                panel.classList.add('opacity-40', 'pointer-events-none');
+                nameSpan.textContent = 'Nenhuma selecionada';
+            }
+        }
+
+        function syncControlsFromObject() {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (!activeObj) return;
+
+            // Escala
+            const scalePct = Math.round(activeObj.scaleX * 100);
+            document.getElementById('scale-slider').value = Math.min(Math.max(scalePct, 20), 250);
+            document.getElementById('scale-value').textContent = `${document.getElementById('scale-slider').value}%`;
+
+            // Rotação
+            const rotDeg = Math.round(activeObj.angle % 360);
+            document.getElementById('rotate-slider').value = rotDeg < 0 ? rotDeg + 360 : rotDeg;
+            document.getElementById('rotate-value').textContent = `${document.getElementById('rotate-slider').value}°`;
+
+            // Opacidade
+            const opacityPct = Math.round((activeObj.opacity || 1) * 100);
+            document.getElementById('opacity-slider').value = opacityPct;
+            document.getElementById('opacity-value').textContent = `${opacityPct}%`;
+        }
+
+        function onScaleSliderChange(val) {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (!activeObj) return;
+            activeObj.scale(val / 100);
+            fabricCanvas.renderAll();
+            document.getElementById('scale-value').textContent = `${val}%`;
+        }
+
+        function adjustScale(delta) {
+            const slider = document.getElementById('scale-slider');
+            let newVal = parseInt(slider.value) + (delta * 100);
+            newVal = Math.min(Math.max(newVal, 20), 250);
+            slider.value = newVal;
+            onScaleSliderChange(newVal);
+        }
+
+        function onRotateSliderChange(val) {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (!activeObj) return;
+            activeObj.set('angle', parseInt(val));
+            fabricCanvas.renderAll();
+            document.getElementById('rotate-value').textContent = `${val}°`;
+        }
+
+        function onOpacitySliderChange(val) {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (!activeObj) return;
+            activeObj.set('opacity', val / 100);
+            fabricCanvas.renderAll();
+            document.getElementById('opacity-value').textContent = `${val}%`;
+        }
+
+        function bringForward() {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (activeObj) {
+                fabricCanvas.bringForward(activeObj);
+                fabricCanvas.renderAll();
+            }
+        }
+
+        function sendBackwards() {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (activeObj) {
+                fabricCanvas.sendBackwards(activeObj);
+                fabricCanvas.renderAll();
+            }
+        }
+
+        function flipItem() {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (activeObj) {
+                activeObj.set('flipX', !activeObj.flipX);
+                fabricCanvas.renderAll();
+            }
+        }
+
+        function removeSelectedGarment() {
+            const activeObj = fabricCanvas.getActiveObject();
+            if (activeObj) {
+                fabricCanvas.remove(activeObj);
+                fabricCanvas.discardActiveObject();
+                fabricCanvas.renderAll();
+                updateControlPanel();
+                showToast('Peça removida do provador');
+            }
+        }
+
+        function clearFittingRoom() {
+            const objects = fabricCanvas.getObjects();
+            if (objects.length === 0) return;
+            
+            while(objects.length > 0) {
+                fabricCanvas.remove(objects[0]);
+            }
+            fabricCanvas.discardActiveObject();
+            fabricCanvas.renderAll();
+            updateControlPanel();
+            showToast('Provador limpo');
+        }
+
+        /* ==========================================================================
+           5. SALVAR E GERENCIAR LOOKBOOK
+           ========================================================================== */
+        
+        function saveCurrentLook() {
+            const objects = fabricCanvas.getObjects();
+            if (objects.length === 0) {
+                showToast('Coloque pelo menos uma roupa no avatar antes de salvar!', 'error');
+                return;
+            }
+
+            const dataURL = fabricCanvas.toDataURL({
+                format: 'png',
+                quality: 0.9
+            });
+
+            const newLook = {
+                id: 'look_' + Date.now(),
+                title: `Look Cool #${appSavedLooks.length + 1}`,
+                imageUrl: dataURL,
+                date: new Date().toLocaleDateString('pt-BR')
+            };
+
+            appSavedLooks.unshift(newLook);
+            localStorage.setItem('coolclothes_looks', JSON.stringify(appSavedLooks));
+            updateLookbookBadge();
+            renderLookbook();
+            showToast('Look salvo no seu Lookbook!');
+        }
+
+        function renderLookbook() {
+            const grid = document.getElementById('lookbook-grid');
+            const emptyState = document.getElementById('lookbook-empty-state');
+            grid.innerHTML = '';
+
+            if (appSavedLooks.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                appSavedLooks.forEach(look => {
+                    const card = document.createElement('div');
+                    card.className = "glass-panel p-3.5 rounded-2xl flex flex-col justify-between space-y-3 group";
+                    card.innerHTML = `
+                        <div class="relative bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center p-2 border border-slate-800">
+                            <img src="${look.imageUrl}" alt="${look.title}" class="max-h-64 object-contain">
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-white text-xs">${look.title}</h4>
+                                <span class="text-[10px] text-slate-400">${look.date}</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="downloadLookImage('${look.imageUrl}', '${look.title}')" title="Baixar Imagem" class="p-2 rounded-lg bg-slate-800 hover:bg-brand-600 text-white text-xs transition-all">
+                                    <i class="fa-solid fa-download"></i>
+                                </button>
+                                <button onclick="confirmDeleteLook('${look.id}')" title="Excluir Look" class="p-2 rounded-lg bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white text-xs transition-all">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        function downloadLookImage(dataUrl, title) {
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `${title.toLowerCase().replace(/\s+/g, '-')}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('Download iniciado!');
+        }
+
+        function confirmDeleteLook(lookId) {
+            showConfirmModal(
+                'Excluir Look?',
+                'Este look será removido permanentemente do seu Lookbook.',
+                () => {
+                    appSavedLooks = appSavedLooks.filter(l => l.id !== lookId);
+                    localStorage.setItem('coolclothes_looks', JSON.stringify(appSavedLooks));
+                    updateLookbookBadge();
+                    renderLookbook();
+                    showToast('Look removido');
+                }
+            );
+        }
+
+        function updateLookbookBadge() {
+            document.getElementById('lookbook-count-badge').textContent = appSavedLooks.length;
+        }
+
+        /* ==========================================================================
+           6. RENDERIZAÇÃO E FILTROS DO ROUPEIRO
+           ========================================================================== */
+        
+        function renderWardrobe() {
+            const grid = document.getElementById('wardrobe-grid');
+            const emptyState = document.getElementById('empty-state');
+            const countBadge = document.getElementById('items-count-badge');
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+
+            grid.innerHTML = '';
+
+            let filtered = appGarments.filter(item => {
+                const matchesCat = (currentCategoryFilter === 'cat_all') || (item.categoryId === currentCategoryFilter);
+                const matchesSearch = item.name.toLowerCase().includes(searchVal);
+                return matchesCat && matchesSearch;
+            });
+
+            countBadge.textContent = `Exibindo ${filtered.length} peça(s)`;
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filtered.forEach(item => {
+                    const category = appCategories.find(c => c.id === item.categoryId) || { name: 'Geral' };
+                    
+                    const card = document.createElement('div');
+                    card.className = "glass-panel p-3 rounded-2xl flex flex-col justify-between group hover:border-brand-500/50 transition-all relative";
+                    card.innerHTML = `
+                        <div class="relative bg-slate-900/90 rounded-xl p-2.5 flex items-center justify-center h-36 overflow-hidden mb-2 border border-slate-800">
+                            <img src="${item.imageUrl}" alt="${item.name}" class="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300">
+                            
+                            <button onclick="confirmDeleteGarment('${item.id}')" title="Excluir peça" class="absolute top-2 right-2 w-7 h-7 rounded-lg bg-slate-900/80 hover:bg-rose-600 text-slate-400 hover:text-white opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-xs shadow-md border border-slate-700">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5 flex-1 flex flex-col justify-between">
+                            <div>
+                                <span class="text-[9px] font-bold uppercase tracking-wider text-brand-300 bg-brand-500/20 px-2 py-0.5 rounded-md inline-block mb-1 border border-brand-500/30">
+                                    ${category.name}
+                                </span>
+                                <h3 class="font-semibold text-white text-xs truncate" title="${item.name}">${item.name}</h3>
+                            </div>
+
+                            <button onclick="tryGarmentOnAvatar('${item.id}')" class="w-full mt-2 py-2 rounded-xl bg-slate-800 hover:bg-brand-600 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm">
+                                <i class="fa-solid fa-wand-magic-sparkles text-brand-400"></i> Provar
+                            </button>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        function filterGarments() {
+            renderWardrobe();
+        }
+
+        /* ==========================================================================
+           7. GERENCIAMENTO DE CATEGORIAS
+           ========================================================================== */
+        
+        function renderCategoryTabs() {
+            const container = document.getElementById('category-tabs-container');
+            container.innerHTML = '';
+
+            appCategories.forEach(cat => {
+                const isActive = (cat.id === currentCategoryFilter);
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                    isActive 
+                    ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' 
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`;
+                btn.onclick = () => {
+                    currentCategoryFilter = cat.id;
+                    renderCategoryTabs();
+                    renderWardrobe();
+                };
+
+                const icon = cat.icon || 'fa-tag';
+                btn.innerHTML = `<i class="fa-solid ${icon}"></i> ${cat.name}`;
+                container.appendChild(btn);
+            });
+        }
+
+        function populateCategoryDropdowns() {
+            const select = document.getElementById('garment-category');
+            select.innerHTML = '';
+
+            appCategories.filter(c => c.id !== 'cat_all').forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function openCategoryModal() {
+            renderCategoryManagementList();
+            document.getElementById('modal-manage-categories').classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('modal-manage-categories').classList.add('hidden');
+        }
+
+        function renderCategoryManagementList() {
+            const list = document.getElementById('categories-management-list');
+            list.innerHTML = '';
+
+            appCategories.forEach(cat => {
+                const isAll = cat.id === 'cat_all';
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 rounded-xl bg-slate-800 border border-slate-700 text-xs";
+                
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 flex-1 mr-2">
+                        <i class="fa-solid ${cat.icon || 'fa-tag'} text-brand-400"></i>
+                        ${!isAll ? `
+                            <input type="text" value="${cat.name}" onchange="renameCategory('${cat.id}', this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-brand-500 w-full">
+                        ` : `<span class="font-medium text-white">${cat.name}</span>`}
+                    </div>
+                    ${!isAll ? `
+                        <button onclick="confirmDeleteCategory('${cat.id}')" class="text-slate-400 hover:text-rose-400 p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    ` : '<span class="text-[10px] text-slate-500 italic">Fixa</span>'}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function handleCreateCategory(event) {
+            event.preventDefault();
+            const input = document.getElementById('new-cat-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const newCat = {
+                id: 'cat_' + Date.now(),
+                name: name,
+                icon: 'fa-tag'
+            };
+
+            appCategories.push(newCat);
+            saveCategoriesState();
+            input.value = '';
+            
+            renderCategoryTabs();
+            populateCategoryDropdowns();
+            renderCategoryManagementList();
+            showToast(`Categoria "${name}" criada!`);
+        }
+
+        function renameCategory(catId, newName) {
+            const cat = appCategories.find(c => c.id === catId);
+            if (!cat || !newName.trim()) return;
+            cat.name = newName.trim();
+            saveCategoriesState();
+            renderCategoryTabs();
+            populateCategoryDropdowns();
+            renderWardrobe();
+            showToast('Categoria renomeada!');
+        }
+
+        function confirmDeleteCategory(catId) {
+            const cat = appCategories.find(c => c.id === catId);
+            if (!cat) return;
+
+            showConfirmModal(
+                `Excluir categoria "${cat.name}"?`,
+                'As peças desta categoria serão movidas para a primeira disponível.',
+                () => {
+                    const fallbackCat = appCategories.find(c => c.id !== 'cat_all' && c.id !== catId)?.id || 'cat_all';
+                    appGarments.forEach(g => {
+                        if (g.categoryId === catId) g.categoryId = fallbackCat;
+                    });
+                    saveGarmentsState();
+
+                    appCategories = appCategories.filter(c => c.id !== catId);
+                    if (currentCategoryFilter === catId) currentCategoryFilter = 'cat_all';
+
+                    saveCategoriesState();
+                    renderCategoryTabs();
+                    populateCategoryDropdowns();
+                    renderCategoryManagementList();
+                    renderWardrobe();
+                    showToast('Categoria excluída!');
+                }
+            );
+        }
+
+        function saveCategoriesState() {
+            localStorage.setItem('coolclothes_categories', JSON.stringify(appCategories));
+        }
+
+        /* ==========================================================================
+           8. MANIPULAÇÃO DE PEÇAS NO ROUPEIRO
+           ========================================================================== */
+        
+        function openAddGarmentModal() {
+            document.getElementById('form-add-garment').reset();
+            document.getElementById('garment-img-preview-box').classList.add('hidden');
+            tempImagePreview = null;
+            setImgSourceMode('upload');
+            document.getElementById('modal-add-garment').classList.remove('hidden');
+        }
+
+        function closeAddGarmentModal() {
+            document.getElementById('modal-add-garment').classList.add('hidden');
+        }
+
+        function setImgSourceMode(mode) {
+            currentSourceMode = mode;
+            const btnUpload = document.getElementById('btn-src-upload');
+            const btnUrl = document.getElementById('btn-src-url');
+            const boxUpload = document.getElementById('container-input-upload');
+            const boxUrl = document.getElementById('container-input-url');
+
+            if (mode === 'upload') {
+                btnUpload.className = "py-2 rounded-xl text-xs font-medium border border-brand-500 bg-brand-500/20 text-brand-300";
+                btnUrl.className = "py-2 rounded-xl text-xs font-medium border border-slate-700 bg-slate-800 text-slate-400";
+                boxUpload.classList.remove('hidden');
+                boxUrl.classList.add('hidden');
+            } else {
+                btnUrl.className = "py-2 rounded-xl text-xs font-medium border border-brand-500 bg-brand-500/20 text-brand-300";
+                btnUpload.className = "py-2 rounded-xl text-xs font-medium border border-slate-700 bg-slate-800 text-slate-400";
+                boxUrl.classList.remove('hidden');
+                boxUpload.classList.add('hidden');
+            }
+        }
+
+        function previewFileImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                tempImagePreview = e.target.result;
+                showImagePreview(tempImagePreview);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function previewUrlImage(url) {
+            if (url && url.length > 5) {
+                tempImagePreview = url;
+                showImagePreview(tempImagePreview);
+            }
+        }
+
+        function showImagePreview(src) {
+            const previewBox = document.getElementById('garment-img-preview-box');
+            const previewImg = document.getElementById('garment-img-preview');
+            previewImg.src = src;
+            previewBox.classList.remove('hidden');
+        }
+
+        function handleSaveGarment(event) {
+            event.preventDefault();
+            const name = document.getElementById('garment-name').value.trim();
+            const categoryId = document.getElementById('garment-category').value;
+
+            if (!tempImagePreview) {
+                showToast('Carregue uma imagem para a roupa!', 'error');
+                return;
+            }
+
+            const newGarment = {
+                id: 'item_' + Date.now(),
+                name: name,
+                categoryId: categoryId,
+                imageUrl: tempImagePreview,
+                dateAdded: Date.now()
+            };
+
+            appGarments.unshift(newGarment);
+            saveGarmentsState();
+            renderWardrobe();
+            closeAddGarmentModal();
+            showToast(`Peça "${name}" salva com sucesso!`);
+        }
+
+        function confirmDeleteGarment(garmentId) {
+            const garment = appGarments.find(g => g.id === garmentId);
+            if (!garment) return;
+
+            showConfirmModal(
+                `Excluir "${garment.name}"?`,
+                'Esta peça será removida da sua biblioteca de roupas.',
+                () => {
+                    appGarments = appGarments.filter(g => g.id !== garmentId);
+                    saveGarmentsState();
+                    renderWardrobe();
+                    showToast('Peça excluída com sucesso!');
+                }
+            );
+        }
+
+        function saveGarmentsState() {
+            localStorage.setItem('coolclothes_garments', JSON.stringify(appGarments));
+        }
+
+        /* ==========================================================================
+           9. NAVEGAÇÃO E MODAIS
+           ========================================================================== */
+        
+        function switchMainTab(tab) {
+            const wardrobeContent = document.getElementById('tab-content-wardrobe');
+            const lookbookContent = document.getElementById('tab-content-lookbook');
+            const navWardrobe = document.getElementById('nav-btn-wardrobe');
+            const navLookbook = document.getElementById('nav-btn-lookbook');
+
+            if (tab === 'wardrobe') {
+                wardrobeContent.classList.remove('hidden');
+                lookbookContent.classList.add('hidden');
+                navWardrobe.className = "px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-brand-600/20 text-brand-300 border border-brand-500/30 hover:bg-brand-600/30 transition-all flex items-center gap-2";
+                navLookbook.className = "px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2";
+            } else {
+                lookbookContent.classList.remove('hidden');
+                wardrobeContent.classList.add('hidden');
+                navLookbook.className = "px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold bg-brand-600/20 text-brand-300 border border-brand-500/30 hover:bg-brand-600/30 transition-all flex items-center gap-2";
+                navWardrobe.className = "px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-all flex items-center gap-2";
+                renderLookbook();
+            }
+        }
+
+        function showConfirmModal(title, desc, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-desc').textContent = desc;
+            pendingDeleteAction = onConfirm;
+
+            document.getElementById('btn-confirm-delete-action').onclick = function() {
+                if (pendingDeleteAction) pendingDeleteAction();
+                closeConfirmModal();
+            };
+
+            document.getElementById('modal-confirm-delete').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('modal-confirm-delete').classList.add('hidden');
+            pendingDeleteAction = null;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast-notification');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = message;
+
+            if (type === 'error') {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-rose-400 text-base";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-base";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
